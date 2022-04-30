@@ -1,4 +1,4 @@
-#%%
+# %%
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -14,8 +14,10 @@ plt.xlim(0, 5)
 plt.ylim(-10, 20)
 plt.xlabel("Precipitation(mm)")
 plt.ylabel("Temperature (Celcius)")
-plt.savefig("../results/MonthlyPrediction/PreTempCohort.tiff", dpi=300, bbox_inches='tight')
+plt.savefig("../results/MonthlyPrediction/PreTempCohort.tiff",
+            dpi=300, bbox_inches='tight')
 plt.show()
 
 
+# Hello world
 # %%
