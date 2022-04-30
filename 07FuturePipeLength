@@ -100,5 +100,3 @@ if __name__ == '__main__':
     for material in ['Cast Iron', 'Ductile Iron', 'Unknown']:
         LCC_length(LCC, material=material, climate_model='MIROC6',
                    city='Cleveland', ssp='ssp585')
-
-    # %%

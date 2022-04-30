@@ -143,6 +143,3 @@ if __name__ == '__main__':
     plt.savefig(f'../results/MonthlyPrediction/Pipe MeanAge.tiff',
                 dpi=300, bbox_inches='tight')
     plt.show()
-
-
-# %%
