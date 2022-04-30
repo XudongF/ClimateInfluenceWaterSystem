@@ -125,25 +125,3 @@ if __name__ == '__main__':
     plt.savefig("../results/MonthlyPrediction/Cast-DuctileCohortAnalysis.tiff",
                 dpi=300, bbox_inches='tight')
     plt.show()
-
-    #
-    # CI_averaged, CI_fitted = FR_Age('Cast Iron')
-    # DI_averaged, DI_fitted = FR_Age('Ductile Iron')
-    #
-    # with plt.style.context(['science', 'no-latex', 'grid']):
-    #     plt.figure(figsize=(6,4))
-    #     plt.scatter(CI_averaged.index, CI_averaged.values, c='blue', alpha=0.6)
-    #     plt.plot(CI_averaged.index, CI_fitted, label='Cast Iron', linewidth=2, c='blue')
-    #     plt.scatter(DI_averaged.index, DI_averaged.values, c='red', alpha=0.6)
-    #     plt.plot(DI_averaged.index, DI_fitted, label='Ductile Iron', linewidth=2, c='red')
-    #     plt.legend()
-    #     plt.xlabel("Pipe age")
-    #     plt.ylabel("FR (No./day/100 miles)")
-    #     plt.tight_layout()
-    #     plt.savefig("../results/MonthlyPrediction/Cast-DuctileCohortAnalysis.tiff", dpi=300, bbox_inches='tight')
-    #     plt.show()
-
-    #
-
-
-# %%
