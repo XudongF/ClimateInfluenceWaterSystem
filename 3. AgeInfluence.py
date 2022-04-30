@@ -125,3 +125,5 @@ if __name__ == '__main__':
     plt.savefig("../results/MonthlyPrediction/Cast-DuctileCohortAnalysis.tiff",
                 dpi=300, bbox_inches='tight')
     plt.show()
+
+# Let;s check if sync
