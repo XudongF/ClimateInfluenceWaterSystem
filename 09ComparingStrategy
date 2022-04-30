@@ -1,0 +1,144 @@
+# %%
+import numpy as np
+import pandas as pd
+from utils import read_data, kriging_predict, line_styles, read_climate
+import matplotlib.pyplot as plt
+
+plt.style.use(['science', 'no-latex'])
+
+plt.rcParams.update({
+    "figure.figsize": (4, 3)})
+
+
+def update_inventory(pipe_record, year, strategy):
+    if strategy == 'ductile':
+        pipe_record['age'] = year - pipe_record.INSTALLDATE
+        pipe_record['MATERIAL'] = np.where(
+            pipe_record.age < 100, pipe_record.MATERIAL, 'Ductile Iron')
+        pipe_record['INSTALLDATE'] = np.where(
+            pipe_record.age < 100, pipe_record.INSTALLDATE, year)
+
+    elif strategy == 'cast':
+        pipe_record['age'] = year - pipe_record.INSTALLDATE
+        pipe_record['MATERIAL'] = np.where(
+            pipe_record.age < 100, pipe_record.MATERIAL, 'Cast Iron')
+        pipe_record['INSTALLDATE'] = np.where(
+            pipe_record.age < 100, pipe_record.INSTALLDATE, year)
+
+    elif strategy == 'update age':
+        pipe_record['age'] = year - pipe_record.INSTALLDATE
+        pipe_record['INSTALLDATE'] = np.where(
+            pipe_record.age < 100, pipe_record.INSTALLDATE, year)
+
+    else:
+        pipe_record['age'] = 2020 - pipe_record.INSTALLDATE
+
+    # pipe_record['INSTAL_Length'] = np.where(pipe_record.age > 100, pipe_record.ASBUILTLENGTH, 0)
+
+    return pipe_record
+
+
+def get_yearly_failure(pipe_data, climate_data, year, material, age):
+
+    label = r'../results/MonthlyPrediction/2DKriging{}{}'.format(material, age)
+
+    pipe_data = pipe_data[(pipe_data['age'] >= age) &
+                          (pipe_data['age'] < age + 25)]
+    count = len(pipe_data)
+
+    climate_data = climate_data[climate_data.index.year == year]
+
+    FR_list, _ = kriging_predict(
+        precip=climate_data['Pr'].values, temp=climate_data['Temp'].values, label=label, style='points')
+
+    FR = FR_list.data
+    FR[FR < 0] = 0
+
+    FR = np.nansum(FR)
+
+    PipeLength = pipe_data['ASBUILTLENGTH'].sum() / 528000
+    FN = FR * PipeLength
+
+    return FR, PipeLength, FN, count
+
+
+def LCC_analysis(pipe_record, climate_model, ssp, city, strategy):
+    future_climate = read_climate(model=climate_model, ssp=ssp, city=city)
+    LCC = {}
+    for year in np.arange(2020, 2101):
+        pipe_record = update_inventory(pipe_record, year, strategy=strategy)
+        yearly_faiure = 0
+        for material in ['Ductile Iron', 'Cast Iron', 'Unknown']:
+            pipe_record_material = pipe_record[pipe_record['MATERIAL'] == material]
+            for age in [0, 25, 50, 75]:
+                FR, PipeLength, FN, count = get_yearly_failure(
+                    pipe_record_material, future_climate, year, material, age)
+                yearly_faiure += FN
+
+        LCC[f'{strategy}FN{year}{ssp}{climate_model}{city}'] = yearly_faiure
+
+    return LCC
+
+
+# %%
+def LCC_box_plot(LCC, city):
+    i = 1
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for year in np.arange(2020, 2100, 20):
+        box_failure = []
+        for strategy in ['update age', 'ductile', 'cast']:
+            strategy_failures = []
+            for box_year in np.arange(year, year+20):
+                year_LCC = dict(
+                    filter(lambda item: strategy+'FN'+str(box_year) in item[0], LCC.items()))
+                strategy_failures += list(year_LCC.values())
+
+            box_failure.append(strategy_failures)
+
+        bp = plt.boxplot(box_failure, positions=[i, i+1, i+2], widths=0.8)
+        plt.setp(bp['medians'][0], color='black', lw=2)
+        plt.setp(bp['medians'][1], color='blue', lw=2)
+        plt.setp(bp['medians'][2], color='red', lw=2)
+        i = i+4
+
+    ax.set_ylim(ax.get_ylim()[0], ax.get_ylim()[1] + 50)
+    ax.set_xlim(ax.get_xlim()[0], ax.get_xlim()[1])
+    ax.set_xticks([2, 6, 10, 14])
+    ax.set_xticklabels(['2030', '2050', '2070', '2090'])
+    hB, = plt.plot([400, 400], 'b-', lw=2)
+    hR, = plt.plot([400, 400], 'r-', lw=2)
+    hK, = plt.plot([400, 400], 'k-', lw=2)
+    plt.legend((hK, hB, hR), ('Original', 'Ductile Iron',
+               'Cast Iron'), loc='upper right')
+    hB.set_visible(False)
+    hR.set_visible(False)
+    hK.set_visible(False)
+    plt.xlabel("Year")
+    plt.ylabel("Failure number")
+    plt.tight_layout()
+    plt.savefig(
+        f'../results/MonthlyPrediction/FN20years{city}.tiff', dpi=300, bbox_inches='tight')
+    plt.show()
+# %%
+
+
+if __name__ == '__main__':
+    # For section 4.3
+    for city in ['Cleveland', 'Miami', 'Phoenix', 'Salt Lake']:
+        LCC = {}
+        for strategy in ['update age', 'ductile', 'cast']:
+            for model in ['MIROC6', 'CanESM', 'CESM2']:
+                for ssp in ['ssp126', 'ssp370', 'ssp585']:
+                    _, _, _, pipe_record = read_data()
+                    pipe_record = pipe_record[(pipe_record['MATERIAL'] == 'Unknown') | (pipe_record['MATERIAL'] == 'Cast Iron') | (
+                        pipe_record['MATERIAL'] == 'Ductile Iron')]
+
+                    pipe_record["INSTALLDATE"] = pipe_record.INSTALLDATE.dt.year
+
+                    pipe_record = pipe_record[pipe_record.INSTALLDATE >= 1920]
+
+                    LCC.update(LCC_analysis(pipe_record, climate_model=model,
+                                            ssp=ssp, city=city, strategy=strategy))
+        LCC_box_plot(LCC, city)
+
+# %%

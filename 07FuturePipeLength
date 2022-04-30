@@ -1,0 +1,104 @@
+# %%
+from utils import read_data, line_styles, read_climate
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.style.use(['science', 'no-latex'])
+
+plt.rcParams.update({
+    "figure.figsize": (4, 3)})
+
+
+def update_inventory(pipe_record, year, strategy):
+    if strategy == 'ductile':
+        pipe_record['age'] = year - pipe_record.INSTALLDATE
+        pipe_record['MATERIAL'] = np.where(
+            pipe_record.age < 100, pipe_record.MATERIAL, 'Ductile Iron')
+        pipe_record['INSTALLDATE'] = np.where(
+            pipe_record.age < 100, pipe_record.INSTALLDATE, year)
+
+    elif strategy == 'cast':
+        pipe_record['age'] = year - pipe_record.INSTALLDATE
+        pipe_record['MATERIAL'] = np.where(
+            pipe_record.age < 100, pipe_record.MATERIAL, 'Cast Iron')
+        pipe_record['INSTALLDATE'] = np.where(
+            pipe_record.age < 100, pipe_record.INSTALLDATE, year)
+
+    elif strategy == 'update age':
+        pipe_record['age'] = year - pipe_record.INSTALLDATE
+        pipe_record['INSTALLDATE'] = np.where(
+            pipe_record.age < 100, pipe_record.INSTALLDATE, year)
+
+    else:
+        pipe_record['age'] = 2020 - pipe_record.INSTALLDATE
+
+    return pipe_record
+
+
+def get_yearly_failure(pipe_data, climate_data, year, material, age):
+    pipe_data = pipe_data[(pipe_data['age'] >= age) &
+                          (pipe_data['age'] < age + 25)]
+
+    PipeLength = pipe_data['ASBUILTLENGTH'].sum() / 528000
+
+    return PipeLength
+
+
+def LCC_analysis(pipe_record, climate_model, ssp, city, strategy):
+    future_climate = read_climate(model=climate_model, ssp=ssp, city=city)
+    LCC = {}
+    for year in np.arange(2020, 2101):
+        pipe_record = update_inventory(pipe_record, year, strategy=strategy)
+        for material in ['Ductile Iron', 'Cast Iron', 'Unknown']:
+
+            pipe_record_material = pipe_record[pipe_record['MATERIAL'] == material]
+
+            for age in [0, 25, 50, 75]:
+                PipeLength = get_yearly_failure(
+                    pipe_record_material, future_climate, year, material, age)
+                LCC[f'{material}PL{year}{ssp}{climate_model}{city}{age}'] = PipeLength
+
+    return LCC
+
+
+def LCC_length(LCC, climate_model, city, material, ssp):
+    line_style, marker_style = line_styles()
+    line_style = iter(line_style)
+    for age in [0, 25, 50, 75]:
+        pipe_length = []
+        for year in np.arange(2020, 2101):
+            pipe_length.append(
+                LCC[f'{material}PL{year}{ssp}{climate_model}{city}{age}'])
+
+        plt.plot(np.arange(2020, 2101), pipe_length,
+                 label=age, lw=2, linestyle=next(line_style))
+
+    plt.xlabel('Year')
+    plt.ylabel("Pipe length (100 miles)")
+    plt.title(f'{material} pipe')
+    plt.legend(loc=2)
+    plt.tight_layout()
+    plt.savefig(
+        f'../results/MonthlyPrediction/PipeLength{material}.tiff', dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+if __name__ == '__main__':
+
+    LCC = {}
+    _, _, _, pipe_record = read_data()
+    pipe_record = pipe_record[(pipe_record['MATERIAL'] == 'Unknown') | (pipe_record['MATERIAL'] == 'Cast Iron') | (
+        pipe_record['MATERIAL'] == 'Ductile Iron')]
+
+    pipe_record["INSTALLDATE"] = pipe_record.INSTALLDATE.dt.year
+
+    pipe_record = pipe_record[pipe_record.INSTALLDATE >= 1920]
+
+    LCC.update(LCC_analysis(pipe_record, climate_model='MIROC6',
+                            ssp='ssp585', city='Cleveland', strategy='update age'))
+
+    for material in ['Cast Iron', 'Ductile Iron', 'Unknown']:
+        LCC_length(LCC, material=material, climate_model='MIROC6',
+                   city='Cleveland', ssp='ssp585')
+
+    # %%
