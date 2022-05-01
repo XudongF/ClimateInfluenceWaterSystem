@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from utils import read_data, func, line_styles
+from sklearn.metrics import r2_score
 
 
 plt.style.use(['science', 'no-latex'])
@@ -58,6 +59,11 @@ def fitting_curve(bins, failure_rates):
     popt, pcov = curve_fit(func, bin_edges_used, failure_ratio_used)
 
     fitted_value = func(bins, *popt)
+    fitting_evaluation = func(bin_edges_used, *popt)
+    r2_value = r2_score(failure_ratio_used, fitting_evaluation)
+    print(f"The material is {material}")
+    print(f"The parameter is: {popt}")
+    print(f"The r2 score is: {r2_value}")
     return fitted_value
 
 
@@ -93,12 +99,12 @@ def FR_Age(interested_material):
 
         averaged_failure = failure_rate.mul(np.array(weights))
 
-        averaged_failure = averaged_failure.sum(axis=1) / 365
+        averaged_failure = averaged_failure.sum(axis=1)
     else:
 
-        averaged_failure = failure_rate.mean(axis=1, skipna=True) / 365
+        averaged_failure = failure_rate.mean(axis=1, skipna=True)
 
-    averaged_failure = averaged_failure[averaged_failure.values <= 0.25]
+    averaged_failure = averaged_failure[averaged_failure.values <= 0.25*365]
 
     fitted_value = fitting_curve(
         averaged_failure.index.values, averaged_failure.values)
@@ -117,7 +123,7 @@ if __name__ == '__main__':
         plt.plot(averaged.index[:100], fitted[:100],
                  label=material, linewidth=2, linestyle=line_style[count])
 
-    plt.ylim(0.02, 0.15)
+    plt.ylim(0.02*365, 0.15*365)
     plt.legend()
     plt.xlabel("Pipe age (years)")
     plt.ylabel("FR (No./day/100 miles)")
