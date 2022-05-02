@@ -192,8 +192,14 @@ def get_pipe_length(grouped_pipe, year):
     return pipe_length
 
 
-def func(x, a, b, c):
-    return a * x ** 2 + b * x + c
+def func(x, a=0, b=0, c=0):
+
+    f = a * x ** 2 + b * x + c
+    # f = a * x + b
+    # f = d*x**3 + a * x ** 2 + b * x + c
+
+
+    return f
 
 
 def read_climate(model, ssp, city):

@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from utils import read_data, func, line_styles
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 
 
 plt.style.use(['science', 'no-latex'])
@@ -30,14 +30,15 @@ def get_failure_rate(s, pipe_data, year):
     return s
 
 
-def yearly_failure_rate(break_record, pipe_record, year):
+def yearly_failure_rate(break_record, pipe_record, year, considered_bins):
     year_break = break_record[break_record['used_time'].dt.year == year]
     pipe_record.loc[:, 'age'] = year - pipe_record.INSTALLDATE.dt.year
     annual_pipe = pipe_record[pipe_record['age'] > 0]
 
     failure_number = year_break.groupby(['break_age']).size().to_frame()
     pipe_length = annual_pipe.groupby(['age']).sum()
-    failure_number = failure_number.reindex(pipe_length.index, fill_value=0)
+    pipe_length = pipe_length.reindex(considered_bins, fill_value=0)
+    failure_number = failure_number.reindex(considered_bins, fill_value=0)
     failure_number['age'] = failure_number.index
 
     failure_number = failure_number.apply(
@@ -61,9 +62,11 @@ def fitting_curve(bins, failure_rates):
     fitted_value = func(bins, *popt)
     fitting_evaluation = func(bin_edges_used, *popt)
     r2_value = r2_score(failure_ratio_used, fitting_evaluation)
+    RMSE = np.sqrt(mean_squared_error(failure_ratio_used, fitting_evaluation))
     print(f"The material is {material}")
     print(f"The parameter is: {popt}")
     print(f"The r2 score is: {r2_value}")
+    print(f"The MSE value: {RMSE}")
     return fitted_value
 
 
@@ -75,9 +78,11 @@ def FR_Age(interested_material):
                                 == interested_material]
     pipe_record = pipe_record[pipe_record['MATERIAL'] == interested_material]
     failures = []
+
+    considered_bins = np.arange(0, 101)
     for year in range(1990, 2020):
         failure = yearly_failure_rate(
-            break_record, pipe_record, year)
+            break_record, pipe_record, year, considered_bins)
         failures.append(failure)
 
     final_failure = pd.concat(failures, axis=1)
@@ -104,7 +109,7 @@ def FR_Age(interested_material):
 
         averaged_failure = failure_rate.mean(axis=1, skipna=True)
 
-    averaged_failure = averaged_failure[averaged_failure.values <= 0.25*365]
+    # averaged_failure = averaged_failure[averaged_failure.values <= 0.25*365]
 
     fitted_value = fitting_curve(
         averaged_failure.index.values, averaged_failure.values)
@@ -119,14 +124,14 @@ if __name__ == '__main__':
         averaged, fitted = FR_Age(material)
         averaged.replace(0, np.nan, inplace=True)
         plt.scatter(averaged.index[:100], averaged.values[:100],
-                    alpha=0.5, marker=marker_style[count])
+                    alpha=0.8, marker=marker_style[count])
         plt.plot(averaged.index[:100], fitted[:100],
-                 label=material, linewidth=2, linestyle=line_style[count])
+                 label=material, linewidth=2, alpha=0.6, linestyle=line_style[count])
 
     plt.ylim(0.02*365, 0.15*365)
     plt.legend()
     plt.xlabel("Pipe age (years)")
-    plt.ylabel("FR (No./day/100 miles)")
+    plt.ylabel("FR (No./year/100 miles)")
     plt.tight_layout()
     plt.savefig("../results/MonthlyPrediction/Cast-DuctileCohortAnalysis.tiff",
                 dpi=300, bbox_inches='tight')
