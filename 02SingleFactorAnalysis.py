@@ -6,6 +6,8 @@ from utils import read_data, apply_climate, climate_shift, line_styles, func
 from scipy.optimize import curve_fit
 import math
 import pandas as pd
+from sklearn.metrics import r2_score, mean_squared_error
+
 
 plt.style.use(['science', 'no-latex'])
 
@@ -13,7 +15,7 @@ plt.rcParams.update({
     "figure.figsize": (4, 3)})
 
 
-def fitting_curve(bins, failure_rates):
+def fitting_curve(bins, failure_rates, material, age_thres):
     nan_idx = []
     for i, arr in enumerate(failure_rates):
         if ~np.isfinite(arr) or arr == 0:
@@ -24,6 +26,14 @@ def fitting_curve(bins, failure_rates):
     popt, pcov = curve_fit(func, bin_edges_used, failure_ratio_used)
 
     fitted_value = func(bins, *popt)
+
+    fitting_evaluation = func(bin_edges_used, *popt)
+    r2_value = r2_score(failure_ratio_used, fitting_evaluation)
+    RMSE = np.sqrt(mean_squared_error(failure_ratio_used, fitting_evaluation))
+    print(f"{material} and {age_thres}")
+    print(f"The parameter is: {popt}")
+    print(f"The r2 score is: {r2_value}")
+    print(f"The MSE value: {RMSE}")
     return fitted_value
 
 
@@ -69,7 +79,7 @@ def plot_agains_age(results, variable):
                 plt.scatter(
                     results[f'{material}{age_thres}{variable}FR'].index, results[f'{material}{age_thres}{variable}FR'].values, marker=marker_style[count], s=15)
                 fitted = fitting_curve(
-                    results[f'{material}{age_thres}{variable}FR'].index, results[f'{material}{age_thres}{variable}FR'].values)
+                    results[f'{material}{age_thres}{variable}FR'].index, results[f'{material}{age_thres}{variable}FR'].values, material, age_thres)
                 plt.plot(
                     results[f'{material}{age_thres}{variable}FR'].index, fitted, linestyle=line_style[count], label=age_thres, lw=2, alpha=0.8)
             else:
