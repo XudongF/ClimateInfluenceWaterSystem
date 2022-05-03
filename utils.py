@@ -11,6 +11,7 @@ from pykrige.rk import Krige
 from pykrige.ok import OrdinaryKriging
 from pykrige.uk import UniversalKriging
 from scipy.interpolate import interp2d
+from sklearn.metrics import r2_score, mean_squared_error
 
 
 def regression_model(precip, temp, failure_rate, label):
@@ -59,13 +60,14 @@ def train_kriging(precip, temp, failure_rate, parameter):
 def kriging_regression(precip, temp, failure_rate, label=None, save=True):
     param_dict = {
         "method": ["universal"],
-        "variogram_model": ["linear", "power", "gaussian", "spherical"],
-        "nlags": [6,   12],
+        "variogram_model": ["spherical", "power"],
+        "nlags": [4, 6, 8],
         # "weight": [True, False]
     }
 
     estimator = GridSearchCV(
-        Krige(), param_dict, verbose=True, return_train_score=True, scoring='neg_root_mean_squared_error', cv=10, n_jobs=10)
+        Krige(), param_dict, verbose=False, return_train_score=True, cv=5, n_jobs=10, scoring='neg_root_mean_squared_error'
+    )
 
     estimator.fit(X=np.vstack((precip, temp)).T, y=failure_rate)
 
@@ -82,10 +84,9 @@ def kriging_regression(precip, temp, failure_rate, label=None, save=True):
             pickle.dump(OK, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         validate_value, _ = kriging_predict(
-            precip, temp, label, style='points')
+            precip + np.random.normal(0, 0.05, len(precip)), temp + np.random.normal(0, 0.05, len(temp)), label, style='points')
 
-        NSE = 1 - np.sum(np.square(failure_rate - validate_value)) / \
-            np.sum(np.square(failure_rate - np.mean(failure_rate)))
+        NSE = r2_score(validate_value, failure_rate)
 
     return NSE, parameter, best_score
 
