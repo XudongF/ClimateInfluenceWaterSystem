@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
+from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score, mean_squared_error
 
 
 def get_failure_rate(precip_bins, precip_data, temp_bins, temp_data, break_record, pipe_record, year, step, age_thres):
@@ -39,6 +41,27 @@ def get_failure_rate(precip_bins, precip_data, temp_bins, temp_data, break_recor
         pipe_length = np.nan
 
     return considered_breaks, climate_days, pipe_length
+
+
+def func(X, a=0, b=0, c=0, d=0, e=0):
+    x, y = X
+    return a*x**2 + b*y**2+c*x+d*y+e
+
+
+def fitting_curve(precip, temp, failure_rates, material, age_thres):
+
+    popt, pcov = curve_fit(func, (precip, temp), failure_rates)
+
+    fitted_value = func(bins, *popt)
+
+    fitting_evaluation = func((precip, temp), *popt)
+    r2_value = r2_score(failure_rates, fitting_evaluation)
+    RMSE = np.sqrt(mean_squared_error(failure_rates, fitting_evaluation))
+    print(f"{material} and {age_thres}")
+    print(f"The parameter is: {popt}")
+    print(f"The r2 score is: {r2_value}")
+    print(f"The MSE value: {RMSE}")
+    return fitted_value
 
 
 def plot_single_year(days_data, break_data, failure_rate, precip_low, precip_up, temp_low, temp_up, year, step):
@@ -191,7 +214,11 @@ if __name__ == '__main__':
 
                 average_failure = np.ma.average(masked_FR, axis=0)
 
-            average_failure[average_failure > 0.25] = np.nan
+            # average_failure[average_failure > 0.25] = np.nan
+            upper_quartile = np.percentile(average_failure, 90)
+            lower_quartile = np.percentile(average_failure, 10)
+            average_failure[average_failure > upper_quartile] = np.nan
+            average_failure[average_failure < lower_quartile] = np.nan
 
             print(
                 f"material: {material_name}, age: {age_thres}, mean FR {np.mean(average_failure)}")
@@ -222,10 +249,10 @@ if __name__ == '__main__':
                 NSE, parameter, best_score = kriging_regression(
                     X_2, X_1, z_values, label)
 
-                print(
-                    f"The failure rate model of {material_name} and {age_thres}")
-                print(f"The best score is {best_score}")
-                print(f"The NSE value is {NSE}")
+                # print(
+                #     f"The failure rate model of {material_name} and {age_thres}")
+                # print(f"The best score is {best_score}")
+                # print(f"The R-2 value is {NSE}")
 
                 new_precip = np.linspace(0.9*precip_low, precip_up, 50)
                 new_temp = np.linspace(0.9*temp_low, temp_up, 50)

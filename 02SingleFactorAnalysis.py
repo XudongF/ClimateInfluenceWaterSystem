@@ -1,5 +1,4 @@
 # %%
-from unittest import result
 import matplotlib.pyplot as plt
 import numpy as np
 from utils import read_data, apply_climate, climate_shift, line_styles, func
