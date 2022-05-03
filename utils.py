@@ -65,11 +65,12 @@ def kriging_regression(precip, temp, failure_rate, label=None, save=True):
     }
 
     estimator = GridSearchCV(
-        Krige(), param_dict, verbose=True, return_train_score=True, scoring='r2')
+        Krige(), param_dict, verbose=True, return_train_score=True, scoring='neg_root_mean_squared_error', cv=10, n_jobs=10)
 
     estimator.fit(X=np.vstack((precip, temp)).T, y=failure_rate)
 
     parameter = estimator.best_params_
+    best_score = estimator.best_score_
 
     OK = train_kriging(precip, temp, failure_rate, parameter)
 
@@ -86,7 +87,7 @@ def kriging_regression(precip, temp, failure_rate, label=None, save=True):
         NSE = 1 - np.sum(np.square(failure_rate - validate_value)) / \
             np.sum(np.square(failure_rate - np.mean(failure_rate)))
 
-    return NSE, parameter
+    return NSE, parameter, best_score
 
 
 def kriging_predict(precip, temp, label, style):
@@ -197,7 +198,6 @@ def func(x, a=0, b=0, c=0):
     f = a * x ** 2 + b * x + c
     # f = a * x + b
     # f = d*x**3 + a * x ** 2 + b * x + c
-
 
     return f
 

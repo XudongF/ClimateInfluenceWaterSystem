@@ -219,8 +219,13 @@ if __name__ == '__main__':
                 label = r'../results/MonthlyPrediction/test/2DKriging{}{}'.format(
                     material_name, age_thres)
 
-                NSE, parameter = kriging_regression(X_2, X_1, z_values, label)
-                # __ = regression_model(X_2, X_1, z_values, label)
+                NSE, parameter, best_score = kriging_regression(
+                    X_2, X_1, z_values, label)
+
+                print(
+                    f"The failure rate model of {material_name} and {age_thres}")
+                print(f"The best score is {best_score}")
+                print(f"The NSE value is {NSE}")
 
                 new_precip = np.linspace(0.9*precip_low, precip_up, 50)
                 new_temp = np.linspace(0.9*temp_low, temp_up, 50)

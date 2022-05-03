@@ -17,7 +17,7 @@ plt.rcParams.update({
 def get_failure_rate(s, pipe_data, year):
 
     tt = pipe_data.loc[s['age']]
-    if tt['ASBUILTLENGTH'] < 5280*2:
+    if tt['ASBUILTLENGTH'] < 5280*1:
         s[f'failure_rate_{year}'] = np.nan
         s[f'length_{year}'] = np.nan
 
