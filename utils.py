@@ -12,6 +12,7 @@ from pykrige.ok import OrdinaryKriging
 from pykrige.uk import UniversalKriging
 from scipy.interpolate import interp2d
 from sklearn.metrics import r2_score, mean_squared_error
+import matplotlib.pyplot as plt
 
 
 def regression_model(precip, temp, failure_rate, label):
@@ -61,7 +62,7 @@ def kriging_regression(precip, temp, failure_rate, label=None, save=True):
     param_dict = {
         "method": ["universal"],
         "variogram_model": ["spherical", "power"],
-        "nlags": [4, 6, 8],
+        "nlags": [6, 10],
         # "weight": [True, False]
     }
 
@@ -84,9 +85,15 @@ def kriging_regression(precip, temp, failure_rate, label=None, save=True):
             pickle.dump(OK, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         validate_value, _ = kriging_predict(
-            precip + np.random.normal(0, 0.05, len(precip)), temp + np.random.normal(0, 0.05, len(temp)), label, style='points')
+            precip + np.random.normal(0, 0.01, len(precip)), temp + np.random.normal(0, 0.01, len(temp)), label, style='points')
 
-        NSE = r2_score(validate_value, failure_rate)
+        NSE = np.sqrt(mean_squared_error(validate_value, failure_rate))
+
+        plt.scatter(validate_value, failure_rate)
+        plt.xlabel("predicted")
+        plt.ylabel("real value")
+        plt.tight_layout()
+        plt.show()
 
     return NSE, parameter, best_score
 
