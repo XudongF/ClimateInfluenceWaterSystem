@@ -32,7 +32,7 @@ def fitting_curve(bins, failure_rates, material, age_thres):
     print(f"{material} and {age_thres}")
     print(f"The parameter is: {popt}")
     print(f"The r2 score is: {r2_value}")
-    print(f"The MSE value: {RMSE}")
+    print(f"The RMSE value: {RMSE}")
     return fitted_value
 
 
