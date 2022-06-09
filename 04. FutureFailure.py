@@ -207,7 +207,7 @@ def LCC_box_plot(LCC, city):
 
 if __name__ == '__main__':
 
-    strategy = 'update age'
+    strategy = 'nothing'
     for city in ['Cleveland', 'Miami', 'Phoenix', 'Salt Lake']:
         LCC = {}
         for model in ['MIROC6', 'CanESM', 'CESM2']:

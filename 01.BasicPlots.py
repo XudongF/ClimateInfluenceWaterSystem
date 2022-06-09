@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from calendar import monthrange
 from datetime import datetime
 import pytz
+import numpy as np
 
 plt.style.use(['science', 'no-latex', 'grid'])
 plt.rcParams.update({
@@ -11,21 +12,19 @@ plt.rcParams.update({
     "font.size": 8})
 
 
-def pipe_monthly_failure_rate(row, grouped_pipe, material):
-    current_month = datetime(int(row.year), int(row.month), monthrange(int(row.year), int(row.month))[1], 0, 0, 0, 0,
-                             pytz.UTC)
+def pipe_failure_rate(row, grouped_pipe, material):
+    current_date = int(row.year)
 
-    pipe_month = grouped_pipe[grouped_pipe.INSTALLDATE <= current_month]
-    pipe_length = pipe_month['ASBUILTLENGTH'].sum()
+    pipe_year = grouped_pipe[grouped_pipe.INSTALLDATE.dt.year <= current_date]
+    pipe_length = pipe_year['ASBUILTLENGTH'].sum()
     row[f'{material}Length'] = pipe_length / 528000
-    row[f'{material}FR'] = row.FailureNumber / pipe_length / \
-        monthrange(int(row.year), int(row.month))[1] * 528000 * 365
+    row[f'{material}FR'] = row.FailureNumber / pipe_length / 365 * 528000
 
-    pipe_month['age'] = current_month - pipe_month.INSTALLDATE
+    pipe_year['age'] = row.year - pipe_year.INSTALLDATE.dt.year
 
-    row[f'{material}MeanAge'] = pipe_month['age'].mean().days / 365
-    row[f'{material}LowerAge'] = pipe_month['age'].quantile(0.1).days / 365
-    row[f'{material}UpperAge'] = pipe_month['age'].quantile(0.9).days / 365
+    row[f'{material}MeanAge'] = pipe_year['age'].mean()
+    row[f'{material}LowerAge'] = pipe_year['age'].quantile(0.1)
+    row[f'{material}UpperAge'] = pipe_year['age'].quantile(0.9)
 
     return row
 
@@ -36,21 +35,19 @@ def failure_rate_plot(material, break_record, pipe_record):
         pipe_record = pipe_record[pipe_record['MATERIAL'] == material]
 
     failure_number = break_record.groupby(
-        [break_record.used_time.dt.year, break_record.used_time.dt.month]).count().reindex(monthly_temp_sum.index,
-                                                                                           fill_value=0)[['Age_label']]
+        [break_record.used_time.dt.year]).count().reindex(considered_year,
+                                                          fill_value=0)[['Age_label']]
     failure_number.rename(columns={'Age_label': 'FailureNumber'}, inplace=True)
 
-    pipe_installation = pipe_record.groupby(
-        [pipe_record.INSTALLDATE.dt.year, pipe_record.INSTALLDATE.dt.month]).count()[['soil_ID']]
+    pipe_installation = failure_number.groupby(
+        [pipe_record.INSTALLDATE.dt.year]).count()[['soil_ID']]
 
     pipe_installation.rename(columns={'soil_ID': "PipeNumber"}, inplace=True)
 
     cache_index = failure_number.index
-    failure_number.index = failure_number.index.set_names(['year', 'month'])
-    failure_number = failure_number.reset_index()
 
     failure_number = failure_number.apply(
-        pipe_monthly_failure_rate, args=(pipe_record, material), axis=1)
+        pipe_failure_rate, args=(pipe_record, material), axis=1)
 
     failure_number.index = cache_index
 
@@ -89,14 +86,8 @@ if __name__ == '__main__':
     break_record = break_record[(break_record['MATERIAL'] == 'Cast Iron') | (
         break_record['MATERIAL'] == 'Ductile Iron') | (break_record['MATERIAL'] == 'Unknown')]
 
-    min_temp = min_temp[(min_temp.index.year < 2020) &
-                        (min_temp.index.year >= 1990)]
-    precip = precip[(precip.index.year < 2020) & (precip.index.year >= 1990)]
+    considered_year = np.arange(1990, 2021)
 
-    temp_difference, monthly_temp_sum, monthly_temp_var = get_monthly_static(
-        'Temp', min_temp)
-    precip_difference, monthly_precip_sum, monthly_precip_var = get_monthly_static(
-        'Pr', precip)
 
 # %%
     all_failure, all_pipe = failure_rate_plot(
