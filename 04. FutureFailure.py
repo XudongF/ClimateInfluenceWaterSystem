@@ -223,7 +223,7 @@ if __name__ == '__main__':
                 LCC.update(LCC_analysis(pipe_record, climate_model=model,
                                         ssp=ssp, city=city, strategy=strategy))
 
-        LCC_yearly_plot(LCC, city)
+        # LCC_yearly_plot(LCC, city)
         LCC_yearlyFR_plot(LCC, city)
         LCC_box_plot(LCC, city)
-        LCC_FR_age(LCC, city)
+        # LCC_FR_age(LCC, city)

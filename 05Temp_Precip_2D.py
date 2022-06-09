@@ -204,7 +204,7 @@ if __name__ == '__main__':
 
             with plt.style.context(['science', 'no-latex']):
                 plt.imshow(average_failure, origin='lower', extent=[precip_low, precip_up, temp_low, temp_up],
-                           aspect='auto')
+                           aspect='auto', vmax=0.125, vmin=0)
                 cbar = plt.colorbar()
                 cbar.ax.set_ylabel('Failure rates')
                 plt.xlabel('Mean precipitation')
@@ -242,7 +242,7 @@ if __name__ == '__main__':
 
                 with plt.style.context(['science', 'no-latex']):
                     plt.imshow(high_res, origin='lower', extent=[
-                               precip_low, precip_up, temp_low, temp_up], aspect='auto')
+                               precip_low, precip_up, temp_low, temp_up], aspect='auto', vmin=0, vmax=0.08)
                     cbar = plt.colorbar()
                     cbar.ax.set_ylabel('Failure rate')
                     plt.title('Failure rate with kriging')
