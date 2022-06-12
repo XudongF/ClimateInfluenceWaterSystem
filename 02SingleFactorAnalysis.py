@@ -110,7 +110,7 @@ if __name__ == '__main__':
                 break_record, climate_data=climate)
             bins = 11
         else:
-            shift_time = 29
+            shift_time = 7
             climate = climate_shift(
                 precip, shift_day=shift_time + 1, variable='Pr', variation='Mean')
             break_record = apply_climate(

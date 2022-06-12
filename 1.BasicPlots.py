@@ -16,6 +16,9 @@ def pipe_monthly_failure_rate(row, grouped_pipe, material):
                              pytz.UTC)
 
     pipe_month = grouped_pipe[grouped_pipe.INSTALLDATE <= current_month]
+    # pipe_month = grouped_pipe[((
+    #     current_month - grouped_pipe.INSTALLDATE).dt.days/365 <= 100) & (grouped_pipe.INSTALLDATE <= current_month)]
+
     pipe_length = pipe_month['ASBUILTLENGTH'].sum()
     row[f'{material}Length'] = pipe_length / 528000
     row[f'{material}FR'] = row.FailureNumber / pipe_length / \
@@ -89,6 +92,8 @@ if __name__ == '__main__':
     break_record = break_record[(break_record['MATERIAL'] == 'Cast Iron') | (
         break_record['MATERIAL'] == 'Ductile Iron') | (break_record['MATERIAL'] == 'Unknown')]
 
+    # break_record = break_record[break_record['break_age'] <= 100]
+# %%
     min_temp = min_temp[(min_temp.index.year < 2020) &
                         (min_temp.index.year >= 1990)]
     precip = precip[(precip.index.year < 2020) & (precip.index.year >= 1990)]
