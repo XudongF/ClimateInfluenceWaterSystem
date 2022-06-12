@@ -98,7 +98,8 @@ if __name__ == '__main__':
     results = {}
     variable = 'Mean'
 
-    for climate_variable in ['Temp', 'Pr']:
+    # for climate_variable in ['Temp', 'Pr']:
+    for climate_variable in ['Pr']:
         break_record, min_temp, precip, pipe_record = read_data()
         break_record = break_record[break_record.used_time.dt.year >= 1990]
 
@@ -110,7 +111,7 @@ if __name__ == '__main__':
                 break_record, climate_data=climate)
             bins = 11
         else:
-            shift_time = 7
+            shift_time = 20
             climate = climate_shift(
                 precip, shift_day=shift_time + 1, variable='Pr', variation='Mean')
             break_record = apply_climate(
